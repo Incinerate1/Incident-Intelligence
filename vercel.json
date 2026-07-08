@@ -1,0 +1,35 @@
+{
+  "version": 2,
+  "rewrites": [
+    {
+      "source": "/api/v1/:path*",
+      "destination": "https://incident-intelligence-api.up.railway.app/api/v1/:path*"
+    },
+    {
+      "source": "/",
+      "destination": "/ui/index.html"
+    },
+    {
+      "source": "/style.css",
+      "destination": "/ui/style.css"
+    },
+    {
+      "source": "/app.js",
+      "destination": "/ui/app.js"
+    },
+    {
+      "source": "/summary_view.html",
+      "destination": "/ui/summary_view.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization" }
+      ]
+    }
+  ]
+}

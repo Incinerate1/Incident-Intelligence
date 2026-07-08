@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Incident Intelligence — 2am P1 Triage Engine</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="logo-area">
+      <div class="logo-icon">⚡</div>
+      <div class="logo-text">
+        <h1>Incident Intelligence</h1>
+        <span>Agentic 2am P1 Triage & Root-Cause Grounding Engine (&lt; 15.0s SLA)</span>
+      </div>
+    </div>
+    <div class="nav-tabs">
+      <button class="tab-btn active" onclick="switchTab('triage')">🚨 Active Triage</button>
+      <button class="tab-btn" onclick="switchTab('summary')">📅 Weekly Summary</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- TAB 1: Active Triage View -->
+    <div id="triage-tab" class="tab-content active">
+      <div class="triage-input-card">
+        <h2>Ingest Alert Trace or Raw Error Stack (`EC-1.2`)</h2>
+        <textarea id="alert-trace-input" placeholder="Paste raw exception header, JVM/Spring stack dump, or Prometheus alert text here... (min 10 chars)"></textarea>
+        
+        <div class="input-actions">
+          <div class="sample-btns">
+            <button class="sample-btn" onclick="insertSample('MemoryPoolExhaustedException in stmt_gen_eod batch run on reporting node 04')">Quick Sample: Memory Exhausted</button>
+            <button class="sample-btn" onclick="insertSample('Database connection pool deadlocks on login authentication module after 500 connections')">Quick Sample: DB Pool Deadlock</button>
+            <button class="sample-btn" onclick="insertSample('Timeout on API gateway while connecting to downstream billing-service during high load')">Quick Sample: Gateway Timeout</button>
+          </div>
+          <div class="action-btns">
+            <button class="btn-secondary" onclick="openCaptureModal()">📝 Document Resolution</button>
+            <button id="triage-submit-btn" class="btn-primary" onclick="executeTriage()">⚡ Execute Triage</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Spinner / Status Notice -->
+      <div id="triage-loading" style="display: none; text-align: center; padding: 2rem; color: var(--accent-blue);">
+        <p id="loading-step-text" style="font-weight: 600; font-size: 1.1rem;">⚡ Translating alert trace to scoped JQL (`EC-1.3`)...</p>
+      </div>
+
+      <!-- Warning / Fallback Banner (`EC-2.1`, `EC-3.1`, `EC-4.1`) -->
+      <div id="status-warning-banner" class="warning-banner" style="display: none;">
+        <span>⚠️</span>
+        <span id="warning-banner-text">Warning notice</span>
+      </div>
+
+      <!-- Result Card -->
+      <div id="triage-result-card" class="result-card" style="display: none;">
+        <div class="card-header">
+          <div>
+            <span style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 0.3rem;">Grounding Status</span>
+            <span id="card-status-badge" class="status-badge badge-VERIFIED_KB_RESOLUTION">VERIFIED_KB_RESOLUTION</span>
+          </div>
+          <div>
+            <span id="card-sla-badge" class="sla-badge">SLA Latency: 0.420s (Target: &lt; 15.0s)</span>
+          </div>
+        </div>
+
+        <div class="card-grid">
+          <div class="info-box">
+            <h3>🔍 Precursor Condition</h3>
+            <p id="card-precursor-text">Precursor root cause</p>
+          </div>
+          <div class="info-box">
+            <h3>👤 Escalation Owner / Team</h3>
+            <p id="card-owner-text" style="color: #bc8cff;">Team name</p>
+          </div>
+          <div class="info-box">
+            <h3>📊 Temporal Recurrence</h3>
+            <p id="card-recurrence-text">11 times in 6 months</p>
+          </div>
+          <div class="info-box">
+            <h3>📅 Date Range Span</h3>
+            <p id="card-daterange-text">Jan 12, 2026 – Jul 02, 2026</p>
+          </div>
+        </div>
+
+        <div id="tickets-container" class="tickets-box" style="display: none;">
+          <h3 style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">🔗 Clickable Jira Issue Candidates</h3>
+          <div id="tickets-links-list" class="tickets-list"></div>
+        </div>
+
+        <!-- Verified Resolution Steps (`EC-4.2`) -->
+        <div id="resolution-steps-container" class="resolution-box" style="display: none;">
+          <h3>🛠️ Verified Known-Error Resolution Steps (`EC-4.2` Priority Override)</h3>
+          <pre id="card-resolution-steps"></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: Shift Manager Weekly Summary Mode (`Step 4.3`) -->
+    <div id="summary-tab" class="tab-content">
+      <div class="triage-input-card">
+        <h2>📅 Shift Manager Weekly Summary Mode (`Step 4.3`)</h2>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
+          Automatically clusters recent incidents over the past N days (`PROJECT in ("CR")`) using `llama-3.3-70b-versatile` into Top 3 alert frequency groups.
+        </p>
+        <div class="summary-controls">
+          <label style="font-weight: 600;">Project Key:</label>
+          <select id="summary-project-select">
+            <option value="CR">CR (Core Reliability)</option>
+            <option value="CREP">CREP (Cloud Reporting)</option>
+          </select>
+          <label style="font-weight: 600;">Time Window:</label>
+          <select id="summary-days-select">
+            <option value="7">Last 7 Days</option>
+            <option value="14">Last 14 Days</option>
+            <option value="30">Last 30 Days</option>
+          </select>
+          <button class="btn-primary" onclick="loadWeeklySummary()">🔄 Generate Top 3 Clusters</button>
+        </div>
+      </div>
+
+      <div id="summary-loading" style="display: none; text-align: center; padding: 2rem; color: var(--accent-blue);">
+        <p style="font-weight: 600; font-size: 1.1rem;">⚡ Fetching tickets &amp; clustering via Groq LLM...</p>
+      </div>
+
+      <div id="summary-grid" class="clusters-grid" style="display: none;"></div>
+    </div>
+  </main>
+
+  <!-- 1-Click Document New Resolution Modal (`EC-5.1`, `EC-5.2`, `EC-5.3`) -->
+  <div id="capture-modal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 style="font-size: 1.25rem;">📝 Document Known-Error Resolution (`JTBD 2`)</h2>
+        <button class="close-btn" onclick="closeCaptureModal()">&times;</button>
+      </div>
+
+      <div id="modal-validation-error" class="validation-error-box"></div>
+
+      <div class="form-group">
+        <label>1. Alert Signature / Error Header (min 10 chars):</label>
+        <input type="text" id="modal-alert-signature" placeholder="e.g. MemoryPoolExhaustedException in stmt_gen_eod">
+      </div>
+
+      <div class="form-group">
+        <label>2. Precursor Condition / Root Cause (`min 15 chars`, `EC-5.3`):</label>
+        <input type="text" id="modal-precursor" placeholder="e.g. JVM heap allocation exceeded during overnight batch run">
+      </div>
+
+      <div class="form-group">
+        <label>3. Step-by-Step Resolution Narrative (`min 30 chars`, `EC-5.3`):</label>
+        <textarea id="modal-resolution" rows="4" placeholder="e.g. Increase JVM heap parameter -Xmx to 16g in systemd config, restart service, and verify heap metrics via Grafana."></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>4. Escalation Owner / Team:</label>
+        <input type="text" id="modal-owner" placeholder="e.g. stmt-engine-team">
+      </div>
+
+      <div class="form-group">
+        <label>5. Existing Jira Issue Key to Append Fix Comment (Optional):</label>
+        <input type="text" id="modal-issue-key" placeholder="e.g. CR-104 (leave blank to create a new Known-Error ticket)">
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1.5rem;">
+        <button class="btn-secondary" onclick="closeCaptureModal()">Cancel</button>
+        <button id="modal-submit-btn" class="btn-primary" onclick="submitResolution()">⚡ Externalize Resolution (`EC-5.1`/`5.2`)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Instant Success Toast -->
+  <div id="toast-message" class="toast-box">
+    <span>✅</span>
+    <span id="toast-text">Resolution Documented successfully!</span>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

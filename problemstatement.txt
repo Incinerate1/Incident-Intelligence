@@ -1,0 +1,93 @@
+================================================================================
+PROJECT 1: INCIDENT INTELLIGENCE
+An Internal Ops Tool for Investment Bank Production Teams
+================================================================================
+
+PROBLEM STATEMENT
+-----------------
+
+Production support teams at investment banks handle 50–200+ incidents per month.
+Post-mortem data lives in email threads, Jira comments, and Confluence pages no
+one reads. The same failures recur because pattern recognition is manual and
+tribal. There is no product that surfaces "this alert has triggered 11 times in
+6 months, always preceded by X, always escalated by Y" — so every incident feels
+like the first one.
+
+DOMAIN
+------
+FinTech / Enterprise Ops Tooling 
+
+TARGET USERS
+------------
+- L1/L2 Production Support Engineers (primary)
+- Team Leads / Shift Managers (secondary)
+- NOT VPs or senior management (they consume outputs, not the tool)
+
+CORE JTBD (Jobs To Be Done)
+----------------------------
+"When a P1 alert fires at 2am, I need to understand if I've seen this pattern
+before, so I can escalate with confidence rather than guessing."
+
+"When I'm writing a post-mortem, I need to know if this exact failure mode has
+been documented before, so I don't waste 2 hours rediscovering root cause."
+
+"When I review my team's weekly incident load, I need to see which alerts are
+recurring and which RCAs actually stuck, so I can prioritize systemic fixes
+over firefighting."
+
+DELIVERABLES
+------------
+
+1. DISCOVERY DOCUMENT (3 pages max)
+   - Who is suffering: L1/L2 support engineers
+   - What they attempt when an incident fires
+   - Where exactly the process breaks
+   - Rooted in real scenarios, framed in JTBD language
+
+2. PRODUCT REQUIREMENTS DOCUMENT (PRD)
+   - TL;DR (3 sentences)
+   - Problem statement with user signal evidence (Reddit r/sre, Blind, forums)
+   - Persona: L2 production support engineer, 2-4 years experience,
+     investment bank, handles 8-12 incidents/week
+   - Success metrics:
+     * North Star: Mean Time to Resolution (MTTR)
+     * Secondary: Repeat incident rate, escalation accuracy
+     * Guardrail: False positive alert rate
+   - Scope table: V1 In / Out / Later
+   - 3 Edge cases
+   - 5 Open questions
+
+3. FEATURE TEARDOWN (PagerDuty / Squadcast)
+   - Reverse-engineer PM decisions behind AI-suggested actions
+   - What metric is it optimizing?
+   - What tradeoff was accepted (speed vs accuracy of suggestions)?
+   - What's broken or missing?
+   - "What I'd do differently" = V1 proposal from PRD (story arc)
+
+4. LIGHTWEIGHT PROTOTYPE (3 screens)
+   - Screen 1: Incident detail view with pattern history panel
+   - Screen 2: RCA template auto-populated from historical tickets
+   - Screen 3: Weekly digest dashboard for team leads
+
+5. INCIDENT PATTERN ANALYSIS TOOL
+   - Find incidents with same alert type, grouped by frequency
+   - Average resolution time per pattern
+   - PM-level data thinking, documented
+
+TIMELINE
+--------
+Week 1: Discovery doc + persona + user research (5-10 real quotes)
+Week 2: PRD (draft, then cut 30%)
+Week 3: Build 3 prototype screens + 5-min walkthrough
+Week 4: Feature teardown + SQL query + package everything
+
+TOOLS
+-----
+- Notion (PRD)
+- Stitch (wireframes)
+- Figma (journey map)
+- Antigravity (prototype + analysis tool)
+- GitHub (PDF export + portfolio hosting)
+
+================================================================================
+
