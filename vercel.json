@@ -3,7 +3,7 @@
   "rewrites": [
     {
       "source": "/api/v1/:path*",
-      "destination": "https://incident-intelligence-api.up.railway.app/api/v1/:path*"
+      "destination": "https://web-production-d3822.up.railway.app"
     },
     {
       "source": "/",
