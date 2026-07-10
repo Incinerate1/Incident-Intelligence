@@ -136,10 +136,14 @@ class McpClientWrapper:
             
             # If Atlassian credentials are configured, fetch real issues directly from Jira Cloud REST API
             if has_credentials and self.cloud_url:
+                logger.info(f"Executing live Jira query against {self.cloud_url} (`jql={jql}`)")
                 res = self._execute_live_jira_rest_request("GET", "/rest/api/3/search/jql", {"jql": jql, "maxResults": params.get("max_results", 20)})
-                return res.get("issues", []) if isinstance(res, dict) else []
-                
-            return []
+                issues = res.get("issues", []) if isinstance(res, dict) else []
+                logger.info(f"Live Jira query returned {len(issues)} issues (`jql={jql}`)")
+                return issues
+            else:
+                logger.warning("EC-2.1 Live Jira credentials (JIRA_USER_EMAIL + JIRA_API_TOKEN) not found in environment variables. Returning 0 issues.")
+                return []
         elif tool_name == "jira_add_comment":
             issue_key = params.get("issue_key", "")
             comment_text = params.get("comment", "")
