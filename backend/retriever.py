@@ -60,11 +60,12 @@ class CandidateRetriever:
             )
             candidates.append(cand)
 
-        # If online search returned 0 candidates (`EC-2.3`), check local store as backup before returning []
-        if not candidates:
-            local_matches = cls._offline_local_fallback(alert_trace or jql)
-            if local_matches:
-                return local_matches
+        # Merge local store matches (pending sync / local KB entries) with online candidates (`EC-2.3` & `EC-4.2`)
+        local_matches = cls._offline_local_fallback(alert_trace or jql)
+        existing_keys = {c.issue_key for c in candidates}
+        for lm in local_matches:
+            if lm.issue_key not in existing_keys:
+                candidates.append(lm)
 
         return candidates
 

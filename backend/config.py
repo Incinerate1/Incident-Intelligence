@@ -13,6 +13,8 @@ class Settings(BaseSettings):
     atlassian_cloud_url: str = Field("https://amanshende652.atlassian.net/", alias="ATLASSIAN_CLOUD_URL")
     atlassian_client_id: str = Field("", alias="ATLASSIAN_CLIENT_ID")
     atlassian_client_secret: str = Field("", alias="ATLASSIAN_CLIENT_SECRET")
+    jira_user_email: str = Field("", alias="JIRA_USER_EMAIL")
+    jira_api_token: str = Field("", alias="JIRA_API_TOKEN")
     atlassian_mcp_config_raw: Union[str, Dict[str, Any]] = Field("{}", alias="ATLASSIAN_MCP_CONFIG")
     jira_project_keys_raw: str = Field("CR", alias="JIRA_PROJECT_KEYS")
 
