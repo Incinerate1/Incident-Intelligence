@@ -23,8 +23,16 @@ class SemanticFilter:
         results: List[SemanticMatchResult] = []
 
         for cand in candidates:
-            # Check Verified KB priority override (`EC-4.2`)
-            if cand.has_verified_kb_entry or "[INCIDENT_INTELLIGENCE_KB_ENTRY]" in cand.description or any("[INCIDENT_INTELLIGENCE_KB_ENTRY]" in c for c in cand.comments):
+            trunc_desc = cand.description[:500] if cand.description else ""
+            top_comments = cand.comments[:3] if cand.comments else []
+            comment_text = " | ".join([c[:200] for c in top_comments])
+            cand_text = f"{cand.summary} {trunc_desc} {comment_text}".lower()
+
+            # Check Verified KB priority override (`EC-4.2`) ONLY IF trace keywords overlap with candidate text
+            has_tag = cand.has_verified_kb_entry or "[INCIDENT_INTELLIGENCE_KB_ENTRY]" in cand.description or any("[INCIDENT_INTELLIGENCE_KB_ENTRY]" in c for c in cand.comments)
+            stop_words = {'cluster', 'service', 'system', 'server', 'active', 'queue', 'connection', 'timeout', 'exception', 'error', 'thread', 'node', 'manager', 'database', 'application', 'isolated', 'sector'}
+            query_words = [w.lower() for w in re.split(r'[^a-zA-Z0-9]+', clean_trace) if len(w) > 4 and w.lower() not in stop_words] or [clean_trace.lower()]
+            if has_tag and any(qw in cand_text for qw in query_words):
                 results.append(SemanticMatchResult(
                     candidate=cand,
                     is_semantic_match=True,
@@ -32,11 +40,6 @@ class SemanticFilter:
                     reasoning="Verified Known-Error KB resolution tag match (`EC-4.2` priority boost)."
                 ))
                 continue
-
-            # Candidate Truncation (`EC-1.1`)
-            trunc_desc = cand.description[:500] if cand.description else ""
-            top_comments = cand.comments[:3] if cand.comments else []
-            comment_text = " | ".join([c[:200] for c in top_comments])
 
             # Ambiguity Noise Check (`EC-1.2`)
             if is_generic_short:
@@ -51,6 +54,17 @@ class SemanticFilter:
                         reasoning="EC-1.2 Ambiguity check: Vague/short query lacks specific root-cause alignment with candidate."
                     ))
                     continue
+
+            # Pre-filter: compute deterministic keyword overlap first (`EC-1.2` / `EC-3.1`)
+            overlap_res = cls._deterministic_keyword_match(clean_trace, cand, trunc_desc, comment_text)
+            if overlap_res.confidence_score < 0.25:
+                results.append(SemanticMatchResult(
+                    candidate=cand,
+                    is_semantic_match=False,
+                    confidence_score=overlap_res.confidence_score,
+                    reasoning=f"EC-1.2 Pre-filter rejection: candidate has insufficient term overlap ({overlap_res.confidence_score}) with alert trace."
+                ))
+                continue
 
             # Attempt LLM Grounding via Groq
             prompt = f"""
@@ -97,7 +111,8 @@ Return ONLY a valid JSON object strictly matching this format:
         Deterministic Keyword Overlap Fallback (`EC-3.1`/`EC-3.3`).
         Computes exact token overlap without calling external LLM APIs.
         """
-        trace_words = set(w.lower() for w in re.split(r'\s+|,|\.|\(|\)|\"|\~|\=|\+', alert_trace) if len(w) > 3)
+        stop_words = {'cluster', 'service', 'system', 'server', 'active', 'queue', 'connection', 'timeout', 'exception', 'error', 'thread', 'node', 'manager', 'database', 'application', 'isolated', 'sector'}
+        trace_words = set(w.lower() for w in re.split(r'\s+|,|\.|\(|\)|\"|\~|\=|\+|_', alert_trace) if len(w) > 4 and w.lower() not in stop_words)
         if not trace_words:
             return SemanticMatchResult(
                 candidate=cand,

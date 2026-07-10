@@ -45,7 +45,7 @@ def test_e2e_continuous_learning_and_deduplication_loop():
     5. Re-triage original error -> VERIFIED_KB_RESOLUTION (`EC-4.2`)
     """
     uid = uuid.uuid4().hex[:8]
-    novel_error = f"NovelThreadDeadlockException on active queue node_{uid}"
+    novel_error = f"UniqueNeverSeenAlertTrace_{uid} in sector_{uid}"
     
     # 1. Novel error check (`EC-4.3`)
     res_triage1 = client.post("/api/v1/triage", json={"alert_trace": novel_error})

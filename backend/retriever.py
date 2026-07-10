@@ -15,10 +15,38 @@ class CandidateRetriever:
     Enforces 400 JQL syntax retry (`EC-1.4`), offline Local KB fallback (`EC-2.1`),
     zero retrieval handling (`EC-2.3`), and verified KB tag detection (`EC-4.2`).
     """
+    @staticmethod
+    def _extract_jira_text(raw_field: Any) -> str:
+        """Extracts plain text from Atlassian Jira Cloud v3 ADF (Atlassian Document Format) or strings (`EC-2.1`)."""
+        if not raw_field:
+            return ""
+        if isinstance(raw_field, str):
+            return raw_field
+        if isinstance(raw_field, dict):
+            texts = []
+            def _recurse(node):
+                if isinstance(node, dict):
+                    if node.get("type") == "text" and "text" in node:
+                        texts.append(str(node.get("text", "")))
+                    for k, v in node.items():
+                        if k != "text":
+                            _recurse(v)
+                elif isinstance(node, list):
+                    for item in node:
+                        _recurse(item)
+            _recurse(raw_field)
+            return "\n".join(texts)
+        return str(raw_field)
+
     @classmethod
     def retrieve_candidates(cls, jql: str, alert_trace: str = "") -> List[JiraTicketCandidate]:
         try:
             raw_issues = mcp_client.execute_jira_search(jql, max_results=20)
+            if not raw_issues:
+                logger.info(f"Exact JQL query returned 0 matches (`jql={jql}`). Retrying with broader project recent issues...")
+                project_keys_str = '", "'.join(settings.jira_project_keys)
+                broad_jql = f'PROJECT in ("{project_keys_str}") ORDER BY created DESC'
+                raw_issues = mcp_client.execute_jira_search(broad_jql, max_results=30)
         except (ValueError, McpConnectionError) as e:
             err_str = str(e).lower()
             if "syntax" in err_str or "400" in err_str or "jql" in err_str:
@@ -43,15 +71,15 @@ class CandidateRetriever:
         candidates = []
         for issue in raw_issues:
             fields = issue.get("fields", {})
-            desc = fields.get("description", "") or ""
-            comments = [c.get("body", "") for c in fields.get("comment", {}).get("comments", []) if c.get("body")]
+            desc = cls._extract_jira_text(fields.get("description", ""))
+            comments = [cls._extract_jira_text(c.get("body", "")) for c in fields.get("comment", {}).get("comments", []) if c.get("body")]
             
             # Check for [INCIDENT_INTELLIGENCE_KB_ENTRY] tag (`EC-4.2`)
             has_kb = "[INCIDENT_INTELLIGENCE_KB_ENTRY]" in desc or any("[INCIDENT_INTELLIGENCE_KB_ENTRY]" in c for c in comments)
             
             cand = JiraTicketCandidate(
                 issue_key=issue.get("key", f"{settings.jira_project_keys[0]}-000"),
-                summary=fields.get("summary", "No summary"),
+                summary=cls._extract_jira_text(fields.get("summary", "No summary")),
                 description=desc,
                 comments=comments,
                 created=fields.get("created", ""),

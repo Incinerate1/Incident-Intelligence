@@ -137,7 +137,7 @@ class McpClientWrapper:
             # If Atlassian credentials are configured, fetch real issues directly from Jira Cloud REST API
             if has_credentials and self.cloud_url:
                 logger.info(f"Executing live Jira query against {self.cloud_url} (`jql={jql}`)")
-                res = self._execute_live_jira_rest_request("GET", "/rest/api/3/search/jql", {"jql": jql, "maxResults": params.get("max_results", 20)})
+                res = self._execute_live_jira_rest_request("GET", "/rest/api/3/search/jql", {"jql": jql, "maxResults": params.get("max_results", 20), "fields": "*all"})
                 issues = res.get("issues", []) if isinstance(res, dict) else []
                 logger.info(f"Live Jira query returned {len(issues)} issues (`jql={jql}`)")
                 return issues
