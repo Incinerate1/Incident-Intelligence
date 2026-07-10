@@ -201,13 +201,13 @@
   },
   {
     "kb_id": "CR-201",
-    "alert_signature": "UniqueShaTestSignature_ffed59a5",
-    "precursor_condition": "Unique root cause triggered by concurrent thread leak ffed59a5",
+    "alert_signature": "UniqueShaTestSignature_15d498eb",
+    "precursor_condition": "Unique root cause triggered by concurrent thread leak 15d498eb",
     "resolution_narrative": "Increase thread pool max size to 500 in application.yml and restart.",
     "escalation_owner": "Unassigned",
-    "created_timestamp": 1783541834.1385958,
+    "created_timestamp": 1783659080.7391703,
     "sync_status": "SYNCED",
-    "content_hash": "1ebcbc4faf16aa19c7d2f5160d9b75a00e5067aeee42bf096b6a620ab56f0a54"
+    "content_hash": "5b185fb409f5cfbfc38a1efbdda0da39ecf3bf4b165704eab606a469d5a895f9"
   },
   {
     "kb_id": "CR-KB-1834",
@@ -218,5 +218,25 @@
     "created_timestamp": 1783541834.153027,
     "sync_status": "PENDING_JIRA_SYNC",
     "content_hash": "47d0b2f152e40ee99a3cccc4e1a8e763b799cb575cdf1f78beb72c22a04dbf1a"
+  },
+  {
+    "kb_id": "CR-KB-8965",
+    "alert_signature": "CloudMaintenanceTestAlert_707da498",
+    "precursor_condition": "Database connection pool exhaustion on reporting node 707da498",
+    "resolution_narrative": "Flush Hikari pool via JMX console and re-enable read replicas.",
+    "escalation_owner": "Unassigned",
+    "created_timestamp": 1783658965.9764934,
+    "sync_status": "PENDING_JIRA_SYNC",
+    "content_hash": "62f17ced99bea98a504f9caa68a6f5bfa4bc817ababd736d2577ba9b2b75589d"
+  },
+  {
+    "kb_id": "CR-KB-9080",
+    "alert_signature": "CloudMaintenanceTestAlert_c2d500cb",
+    "precursor_condition": "Database connection pool exhaustion on reporting node c2d500cb",
+    "resolution_narrative": "Flush Hikari pool via JMX console and re-enable read replicas.",
+    "escalation_owner": "Unassigned",
+    "created_timestamp": 1783659080.7567549,
+    "sync_status": "PENDING_JIRA_SYNC",
+    "content_hash": "c0415d4c63452d08611e0f22d94a2ff48d4be1b66ddcdb73b10469628a384530"
   }
 ]

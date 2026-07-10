@@ -5,6 +5,46 @@ const API_BASE = window.API_BASE_URL || (
     : "/api/v1"
 );
 
+// Dynamic Atlassian Cloud Base URL (`settings.atlassian_cloud_url` from backend)
+let ATLASSIAN_CLOUD_URL = window.ATLASSIAN_CLOUD_URL || "https://amanshende652.atlassian.net/";
+
+// Fetch health check on app load to get active Atlassian Cloud URL from backend
+async function fetchAtlassianConfig() {
+  try {
+    const res = await fetch(`${API_BASE}/health`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.atlassian_cloud_url) {
+        ATLASSIAN_CLOUD_URL = data.atlassian_cloud_url;
+      }
+    }
+  } catch (e) {
+    console.warn("Could not fetch atlassian_cloud_url from health endpoint, using default:", e);
+  }
+}
+fetchAtlassianConfig();
+
+// Helper to construct full clickable Atlassian Jira URL (`browse/KEY` or `KEY`)
+function getJiraIssueUrl(ticketRef) {
+  if (!ticketRef) return "#";
+  const refStr = String(ticketRef).trim();
+  if (refStr.startsWith("http://") || refStr.startsWith("https://")) {
+    return refStr;
+  }
+  const baseUrl = ATLASSIAN_CLOUD_URL.replace(/\/+$/, "");
+  if (refStr.startsWith("browse/")) {
+    return `${baseUrl}/${refStr}`;
+  }
+  return `${baseUrl}/browse/${refStr}`;
+}
+
+// Open Atlassian Jira issue in new tab
+function openAtlassianJira(ticketRef, event) {
+  if (event) event.preventDefault();
+  const targetUrl = getJiraIssueUrl(ticketRef);
+  window.open(targetUrl, "_blank", "noopener,noreferrer");
+}
+
 
 // Tab navigation
 function switchTab(tabId) {
@@ -103,9 +143,12 @@ function renderTriageCard(pattern, meta) {
     pattern.matched_tickets.forEach(url => {
       const link = document.createElement('a');
       link.className = 'ticket-link';
-      link.href = `#`;
+      const targetUrl = getJiraIssueUrl(url);
+      link.href = targetUrl;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
       link.innerText = url;
-      link.onclick = (e) => { e.preventDefault(); alert(`Navigating to Atlassian Jira issue: ${url}`); };
+      link.onclick = (e) => openAtlassianJira(url, e);
       ticketsList.appendChild(link);
     });
     ticketsContainer.style.display = 'block';
@@ -254,7 +297,10 @@ async function loadWeeklySummary() {
               <strong>Primary Assignees:</strong> ${(cluster.affected_assignees || []).join(", ") || "Unassigned"}
             </div>
             <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-              ${(cluster.sample_tickets || []).map(t => `<span class="ticket-link">${t}</span>`).join("")}
+              ${(cluster.sample_tickets || []).map(t => {
+                const targetUrl = getJiraIssueUrl(t);
+                return `<a class="ticket-link" href="${targetUrl}" target="_blank" rel="noopener noreferrer" onclick="openAtlassianJira('${t}', event)">${t}</a>`;
+              }).join("")}
             </div>
           </div>
         `;
